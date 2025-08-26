@@ -15,7 +15,7 @@ An intelligent voice-based appointment scheduling system that uses ChatGPT 4o Mi
 
 1. **Install Dependencies**:
    ```bash
-   pip install -r requirements.txt
+   python3 -m pip install -r requirements.txt
    ```
 
 2. **Set up OpenAI API**:
