@@ -1,9 +1,16 @@
 import sys
+import os
 from typing import Dict, Any, Optional
 from voice_interface import VoiceInterface
 from chatgpt_handler import ChatGPTHandler
 from appointment_manager import AppointmentManager
 from config import DOCTORS
+
+# Handle frozen executable paths
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    application_path = os.path.dirname(sys.executable)
+    os.chdir(application_path)
 
 class SmartAppointmentScheduler:
     def __init__(self):
