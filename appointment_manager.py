@@ -1,93 +1,74 @@
-import datetime
 from typing import List, Dict, Any, Optional
 from config import DOCTORS
+import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 class AppointmentManager:
     def __init__(self):
-        self.appointments = []  # In a real app, this would be a database
-        
+        self.appointments = []  # In-memory list
+
     def generate_time_slots(self, doctor_id: str, day: str) -> List[str]:
         """Generate available time slots for a doctor on a specific day"""
         if doctor_id not in DOCTORS:
+            logging.error(f"Doctor ID '{doctor_id}' not found.")
             return []
-            
         doctor = DOCTORS[doctor_id]
         if day.lower() not in doctor["days"]:
+            logging.error(f"Day '{day}' not available for doctor '{doctor_id}'.")
             return []
-            
         slots = []
         start_hour, end_hour = doctor["hours"]
-        
-        # Create datetime object for the day
         start_time = datetime.datetime(2025, 1, 1, start_hour, 0)
         end_time = datetime.datetime(2025, 1, 1, end_hour, 0)
-        
         current_time = start_time
         while current_time < end_time:
-            slot_str = current_time.strftime("%I:%M %p")
-            
-            # Check if slot is already booked
-            if not self.is_slot_booked(doctor_id, day, slot_str):
-                slots.append(slot_str)
-                
+            slot = current_time.strftime("%H:%M")
+            if not self.is_slot_booked(doctor_id, day, slot):
+                slots.append(slot)
             current_time += datetime.timedelta(minutes=20)
-            
         return slots
-    
+
     def is_slot_booked(self, doctor_id: str, day: str, time_slot: str) -> bool:
         """Check if a specific slot is already booked"""
         for appointment in self.appointments:
-            if (appointment["doctor_id"] == doctor_id and 
-                appointment["day"].lower() == day.lower() and 
+            if (appointment["doctor_id"] == doctor_id and
+                appointment["day"] == day and
                 appointment["time_slot"] == time_slot):
                 return True
         return False
-    
+
     def book_appointment(self, patient_name: str, doctor_id: str, day: str, time_slot: str) -> bool:
         """Book an appointment"""
         if self.is_slot_booked(doctor_id, day, time_slot):
+            logging.warning(f"Slot {time_slot} on {day} for doctor {doctor_id} is already booked.")
             return False
-            
-        appointment = {
+        self.appointments.append({
             "patient_name": patient_name,
             "doctor_id": doctor_id,
-            "doctor_name": DOCTORS[doctor_id]["name"],
             "day": day,
-            "time_slot": time_slot,
-            "booking_time": datetime.datetime.now().isoformat()
-        }
-        
-        self.appointments.append(appointment)
+            "time_slot": time_slot
+        })
+        logging.info(f"Booked appointment for {patient_name} with {doctor_id} on {day} at {time_slot}.")
         return True
-    
+
     def get_doctor_availability_summary(self) -> str:
-        """Get a summary of all doctors and their availability"""
         summary = []
         for doc_id, info in DOCTORS.items():
-            days = ", ".join([day.title() for day in info["days"]])
-            summary.append(f"{info['name']} ({info['specialty']}) - Available: {days}")
+            days = ", ".join(info["days"])
+            summary.append(f"{info['name']} ({info['specialty']}): {days} {info['hours'][0]}:00-{info['hours'][1]}:00")
         return "\n".join(summary)
-    
+
     def normalize_time_input(self, time_input: str) -> Optional[str]:
-        """Normalize various time inputs to standard format"""
-        if not time_input:
-            return None
-            
-        time_input = time_input.upper().replace(".", "").strip()
-        
-        # Common time formats to try
-        formats = [
-            "%I:%M %p",  # 10:00 AM
-            "%I %p",     # 10 AM
-            "%H:%M",     # 14:00
-            "%H"         # 14
-        ]
-        
-        for fmt in formats:
+        """Normalize various time input formats to HH:MM"""
+        try:
+            time_obj = datetime.datetime.strptime(time_input, "%H:%M")
+            return time_obj.strftime("%H:%M")
+        except ValueError:
             try:
-                parsed_time = datetime.datetime.strptime(time_input, fmt)
-                return parsed_time.strftime("%I:%M %p")
+                time_obj = datetime.datetime.strptime(time_input, "%I:%M %p")
+                return time_obj.strftime("%H:%M")
             except ValueError:
-                continue
-                
-        return None
+                logging.error(f"Invalid time format: {time_input}")
+                return None

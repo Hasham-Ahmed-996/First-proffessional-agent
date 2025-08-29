@@ -29,6 +29,8 @@ DOCTORS = {
     }
 }
 
-# Voice settings
-VOICE_RATE = 150
-VOICE_VOLUME = 0.9
+# Grouped config for future scalability
+VOICE_CONFIG = {
+    "rate": 150,
+    "volume": 0.9
+}
